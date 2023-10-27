@@ -55,6 +55,8 @@ export class HttpExceptionFilter extends BaseExceptionFilter {
       if (exception.code === "P2002") {
         // Handling Unique Key Constraint Violation Error
         const fields = (exception.meta as { target: string[] }).target;
+        console.log(host.getArgs());
+        //TODO: Delete the new file here if it was a POST request or else what will be done in case of PATCH request?? :(
         message = `Another record with the requested (${fields.join(
           ", "
         )}) already exists`;

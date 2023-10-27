@@ -13,6 +13,10 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { Prisma, User } from "@prisma/client";
 import { PasswordService } from "../../auth/password.service";
 import { transformStringFieldUpdateInput } from "../../prisma.util";
+import { join } from "path";
+import * as fs from "fs";
+import { Response } from "express";
+import * as errors from "../../errors";
 
 export class UserServiceBase {
   constructor(
@@ -51,6 +55,39 @@ export class UserServiceBase {
   async update<T extends Prisma.UserUpdateArgs>(
     args: Prisma.SelectSubset<T, Prisma.UserUpdateArgs>
   ): Promise<User> {
+    const temp = await this.findOne({ where: { id: args.where.id } });
+    console.log("hi");
+    if (
+      (
+        args.data.fileUserImage as {
+          fileName: string;
+          filePath: string;
+          fileExtension: string;
+        }
+      ).filePath !== null &&
+      temp !== null &&
+      (
+        temp?.fileUserImage as {
+          fileName: string;
+          filePath: string;
+          fileExtension: string;
+        }
+      ).filePath !== null
+    ) {
+      const filePath = join(
+        __dirname,
+        "../../../public/user",
+        (
+          temp.fileUserImage as {
+            fileName: string;
+            filePath: string;
+            fileExtension: string;
+          }
+        ).fileName
+      );
+      fs.unlinkSync(filePath);
+    }
+
     return this.prisma.user.update<T>({
       ...args,
 
@@ -70,5 +107,38 @@ export class UserServiceBase {
     args: Prisma.SelectSubset<T, Prisma.UserDeleteArgs>
   ): Promise<User> {
     return this.prisma.user.delete(args);
+  }
+  async downloadFile(
+    fileName: string,
+    res: Response
+  ): Promise<Response<any> | void> {
+    console.log(process.cwd(), __dirname);
+
+    // If file not found return 404 and {
+    //   "statusCode": 0,
+    //   "message": "string"
+    // }
+    // Check if the file if present or not
+
+    const filePath = join(__dirname, "../../../public/user", fileName);
+
+    // If file not found return 404 and {
+    //   "statusCode": 0,
+    //   "message": "string"
+    // }
+
+    // check if the file exists
+    // if not return 404
+    // else return the file
+
+    console.log("Hello", filePath);
+
+    if (fs.existsSync(filePath) === false) {
+      throw new errors.NotFoundException(
+        `No resource was found for ${JSON.stringify(fileName)}`
+      );
+    }
+
+    return res.download(filePath);
   }
 }

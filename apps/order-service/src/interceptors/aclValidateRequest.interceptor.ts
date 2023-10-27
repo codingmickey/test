@@ -37,10 +37,12 @@ export class AclValidateRequestInterceptor implements NestInterceptor {
       resource: permissionsRoles.resource,
     });
 
+    console.log("aclValidateRequest", permission, inputDataToValidate);
     const invalidAttributes = abacUtil.getInvalidAttributes(
       permission,
       inputDataToValidate
     );
+    console.log("validatee");
 
     if (invalidAttributes.length) {
       throw new ForbiddenException(

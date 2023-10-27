@@ -20,13 +20,34 @@ import { InputJsonValue } from "../../types";
 class UserCreateInput {
   @ApiProperty({
     required: false,
+    // type: 'file'
+    type: "string",
+    format: "binary",
   })
-  @IsJSONValue()
+  // @IsJSONValue()
   @IsOptional()
   @Field(() => GraphQLJSON, {
     nullable: true,
   })
   fileUserImage?: InputJsonValue;
+
+  @ApiProperty({
+    required: false,
+    // type: 'file'
+    type: "string",
+    format: "binary",
+  })
+  @IsOptional()
+  // @Field(() => String, {
+  //   nullable: true,
+  // })
+  fileUserInvoice?: InputJsonValue;
+
+  // @ApiProperty({
+  //   required: false,
+  //   type: String,
+  // })
+  // userImage?: string;
 
   @ApiProperty({
     required: false,

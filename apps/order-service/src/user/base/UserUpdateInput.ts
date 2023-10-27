@@ -20,8 +20,10 @@ import { InputJsonValue } from "../../types";
 class UserUpdateInput {
   @ApiProperty({
     required: false,
+    type: "string",
+    format: "binary",
   })
-  @IsJSONValue()
+  // @IsJSONValue()
   @IsOptional()
   @Field(() => GraphQLJSON, {
     nullable: true,

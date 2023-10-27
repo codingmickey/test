@@ -13,7 +13,7 @@ import * as common from "@nestjs/common";
 import * as swagger from "@nestjs/swagger";
 import { isRecordNotFoundError } from "../../prisma.util";
 import * as errors from "../../errors";
-import { Request } from "express";
+import { Request, Response } from "express";
 import { plainToClass } from "class-transformer";
 import { ApiNestedQuery } from "../../decorators/api-nested-query.decorator";
 import * as nestAccessControl from "nest-access-control";
@@ -27,6 +27,25 @@ import { UserWhereUniqueInput } from "./UserWhereUniqueInput";
 import { UserFindManyArgs } from "./UserFindManyArgs";
 import { UserUpdateInput } from "./UserUpdateInput";
 import { User } from "./User";
+import {
+  FileFieldsInterceptor,
+  FileInterceptor,
+} from "@nestjs/platform-express";
+import { diskStorage } from "multer";
+import * as path from "path";
+import { findSync } from "@prisma/client/runtime";
+import * as fs from "fs";
+import { join } from "path";
+import { InputJsonValue } from "src/types";
+import {
+  // FilesType,
+  fileToJSON,
+  // fileToJSON,
+  generateMulterOptions,
+  generateUploadFields,
+} from "src/util/FileHelper";
+import { UserFilesType, userFiles } from "./UserFileArgs";
+import { UserWhereDownloadInput } from "./UserWhereDownloadInput";
 
 @swagger.ApiBearerAuth()
 @common.UseGuards(defaultAuthGuard.DefaultAuthGuard, nestAccessControl.ACGuard)
@@ -35,7 +54,53 @@ export class UserControllerBase {
     protected readonly service: UserService,
     protected readonly rolesBuilder: nestAccessControl.RolesBuilder
   ) {}
-  @common.UseInterceptors(AclValidateRequestInterceptor)
+  @common.UseInterceptors(
+    AclValidateRequestInterceptor,
+    // CustomFileInterceptor,
+    FileFieldsInterceptor(
+      generateUploadFields(userFiles),
+      generateMulterOptions("user")
+    )
+
+    // FileInterceptor("fileUserImage", {
+
+    // }),
+    // FileInterceptor("fileUserInvoice", {
+    //   storage: diskStorage({
+    //     destination: "public/user",
+    //     filename: async (req, file, cb) => {
+    //       // TODO: problem if the user uploads a file with different extension
+
+    //       const prefix = "fileUserInvoice";
+    //       const extension = path.extname(file.originalname);
+    //       const timestamp = new Date()
+    //         .toISOString()
+    //         .replace(/[-:]/g, "")
+    //         .replace(/\.\d+/, ""); // Format the timestamp
+    //       const generateRandomString = (length: number): string => {
+    //         let result = "";
+    //         const characters =
+    //           "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    //         const charactersLength = characters.length;
+    //         for (let i = 0; i < length; i++) {
+    //           result += characters.charAt(
+    //             Math.floor(Math.random() * charactersLength)
+    //           );
+    //         }
+    //         return result;
+    //       };
+    //       const randomString = generateRandomString(8); // Generate an 8-character random string
+
+    //       const fileName = `${prefix}_${timestamp}_${randomString}${extension}`;
+    //       console.log(fileName);
+    //       const directory = "public/user";
+
+    //       cb(null, fileName);
+    //     },
+    //   }),
+    // })
+  )
+  @swagger.ApiConsumes("multipart/form-data")
   @common.Post()
   @swagger.ApiCreatedResponse({ type: User })
   @nestAccessControl.UseRoles({
@@ -46,7 +111,52 @@ export class UserControllerBase {
   @swagger.ApiForbiddenResponse({
     type: errors.ForbiddenException,
   })
-  async create(@common.Body() data: UserCreateInput): Promise<User> {
+  async create(
+    @common.Body() data: UserCreateInput,
+    @common.UploadedFiles()
+    files: {
+      [key in UserFilesType]?: Express.Multer.File[];
+    }
+  ) {
+    common.Logger.debug(data.toString());
+    console.log("fking", data, typeof files);
+
+    // create a type with the UserCreateInput inherting and changing the fileUserImage to InputJson field
+    // type UserCreateInputWithFile = Omit<UserCreateInput, "fileUserImage"> & { fileUserImage: InputJsonValue };
+    // const newData = {
+    //   ...data,
+    //   fileUserImage:
+    //     file !== undefined
+    //       ? {
+    //           filePath: file.path,
+    //           fileExtension: path.extname(file.originalname),
+    //           fileName: file.filename,
+    //         }
+    //       : { fileExtension: null, filePath: null, fileName: null },
+    // };
+
+    fileToJSON<UserCreateInput>(data, userFiles, files);
+
+    console.log({ file: typeof files });
+
+    // if (files?.fileUserImage?.[0]) {
+    //   const { path: filePath, originalname, filename } = files.fileUserImage[0];
+    //   data.fileUserImage = {
+    //     filePath,
+    //     fileExtension: path.extname(originalname),
+    //     fileName: filename,
+    //   };
+    // } else {
+    //   data.fileUserImage = {
+    //     fileExtension: null,
+    //     filePath: null,
+    //     fileName: null,
+    //   };
+    // }
+    console.log(data);
+
+    delete data.fileUserInvoice;
+
     return await this.service.create({
       data: data,
       select: {
@@ -127,7 +237,14 @@ export class UserControllerBase {
     return result;
   }
 
-  @common.UseInterceptors(AclValidateRequestInterceptor)
+  @common.UseInterceptors(
+    AclValidateRequestInterceptor,
+    FileFieldsInterceptor(
+      generateUploadFields(userFiles),
+      generateMulterOptions("user")
+    )
+  )
+  @swagger.ApiConsumes("multipart/form-data")
   @common.Patch("/:id")
   @swagger.ApiOkResponse({ type: User })
   @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
@@ -141,9 +258,16 @@ export class UserControllerBase {
   })
   async update(
     @common.Param() params: UserWhereUniqueInput,
-    @common.Body() data: UserUpdateInput
+    @common.Body() data: UserUpdateInput,
+    @common.UploadedFiles()
+    files: // Thinking of making an interceptor instead of this?
+    {
+      fileUserImage?: Express.Multer.File[];
+    }
   ): Promise<User | null> {
     try {
+      fileToJSON<UserUpdateInput>(data, ["fileUserImage"], files);
+      console.log("HFDLKSJLD", data, params);
       return await this.service.update({
         where: params,
         data: data,
@@ -204,5 +328,24 @@ export class UserControllerBase {
       }
       throw error;
     }
+  }
+
+  @common.UseInterceptors(AclFilterResponseInterceptor)
+  @common.Get("/download/:fileName")
+  @swagger.ApiOkResponse({ type: User })
+  @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  @nestAccessControl.UseRoles({
+    resource: "User",
+    action: "read",
+    possession: "own",
+  })
+  @swagger.ApiForbiddenResponse({
+    type: errors.ForbiddenException,
+  })
+  async download(
+    @common.Res() res: Response,
+    @common.Param() params: UserWhereDownloadInput
+  ): Promise<void | Response<any>> {
+    return this.service.downloadFile(params.fileName, res);
   }
 }
