@@ -27,6 +27,12 @@ import { UserWhereUniqueInput } from "./UserWhereUniqueInput";
 import { UserFindManyArgs } from "./UserFindManyArgs";
 import { UserUpdateInput } from "./UserUpdateInput";
 import { User } from "./User";
+import { FileInterceptor } from "@nestjs/platform-express";
+import { diskStorage } from "multer";
+import * as path from "path";
+import { findSync } from "@prisma/client/runtime";
+import * as fs from "fs";
+import { InputJsonValue } from "src/types";
 
 @swagger.ApiBearerAuth()
 @common.UseGuards(defaultAuthGuard.DefaultAuthGuard, nestAccessControl.ACGuard)
@@ -35,7 +41,65 @@ export class UserControllerBase {
     protected readonly service: UserService,
     protected readonly rolesBuilder: nestAccessControl.RolesBuilder
   ) {}
-  @common.UseInterceptors(AclValidateRequestInterceptor)
+  @common.UseInterceptors(
+    AclValidateRequestInterceptor,
+    // CustomFileInterceptor,
+
+    FileInterceptor("fileUserImage", {
+      storage: diskStorage({
+        destination: "public/user",
+        filename: async (req, file, cb) => {
+          // TODO: problem if the user uploads a file with different extension
+
+          const prefix = "fileUserImage";
+          const extension = path.extname(file.originalname);
+          const timestamp = new Date()
+            .toISOString()
+            .replace(/[-:]/g, "")
+            .replace(/\.\d+/, ""); // Format the timestamp
+          const generateRandomString = (length: number): string => {
+            let result = "";
+            const characters =
+              "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+            const charactersLength = characters.length;
+            for (let i = 0; i < length; i++) {
+              result += characters.charAt(
+                Math.floor(Math.random() * charactersLength)
+              );
+            }
+            return result;
+          };
+          const randomString = generateRandomString(8); // Generate an 8-character random string
+
+          const fileName = `${prefix}_${timestamp}_${randomString}${extension}`;
+          const directory = "public/user";
+
+          // Finding the previously uploaded file and then deleting it if the extension is not matching
+          // As multer would just replace the file if it has the same name and extension
+          // try {
+          //   const files = await fs.promises.readdir(directory);
+          //   const prefixedFile = files.find((file) => file.startsWith(prefix));
+
+          //   if (prefixedFile) {
+          //     const filePath = `${directory}/${prefixedFile}`;
+          //     await fs.promises.unlink(filePath);
+          //     console.log(
+          //       `File ${prefixedFile} with prefix ${prefix} deleted.`
+          //     );
+          //   } else {
+          //     console.log(`No file found with prefix ${prefix}.`);
+          //   }
+          // } catch (err) {
+          //   console.error("Error:", err);
+          // }
+
+          // Finally pass the fileName to save the file
+          cb(null, fileName);
+        },
+      }),
+    })
+  )
+  @swagger.ApiConsumes("multipart/form-data")
   @common.Post()
   @swagger.ApiCreatedResponse({ type: User })
   @nestAccessControl.UseRoles({
@@ -46,7 +110,32 @@ export class UserControllerBase {
   @swagger.ApiForbiddenResponse({
     type: errors.ForbiddenException,
   })
-  async create(@common.Body() data: UserCreateInput): Promise<User> {
+  async create(
+    @common.Body() data: UserCreateInput,
+    @common.UploadedFile() file: Express.Multer.File
+  ) {
+    common.Logger.debug(data.toString());
+    console.log("fking", data, file);
+
+    // create a type with the UserCreateInput inherting and changing the fileUserImage to InputJson field
+    // type UserCreateInputWithFile = Omit<UserCreateInput, "fileUserImage"> & { fileUserImage: InputJsonValue };
+    // const newData = {
+    //   ...data,
+    //   fileUserImage:
+    //     file !== undefined
+    //       ? {
+    //           filePath: file.path,
+    //           fileExtension: path.extname(file.originalname),
+    //           fileName: file.filename,
+    //         }
+    //       : { fileExtension: null, filePath: null, fileName: null },
+    // };
+    data.fileUserImage = {
+      filePath: file.path,
+      fileExtension: path.extname(file.originalname),
+      fileName: file.filename,
+    };
+
     return await this.service.create({
       data: data,
       select: {
@@ -205,4 +294,41 @@ export class UserControllerBase {
       throw error;
     }
   }
+
+  // @common.UseInterceptors(AclFilterResponseInterceptor)
+  // @common.Get("/download/:fileName")
+  // @swagger.ApiOkResponse({ type: User })
+  // @swagger.ApiNotFoundResponse({ type: errors.NotFoundException })
+  // @nestAccessControl.UseRoles({
+  //   resource: "User",
+  //   action: "read",
+  //   possession: "own",
+  // })
+  // @swagger.ApiForbiddenResponse({
+  //   type: errors.ForbiddenException,
+  // })
+  // async download(
+  //   @common.Param() params: UserWhereUniqueInput
+  // ): Promise<User | null> {
+  //   const result = await this.service.findOne({
+  //     where: params,
+  //     select: {
+  //       createdAt: true,
+  //       fileUserImage: true,
+  //       firstName: true,
+  //       id: true,
+  //       lastName: true,
+  //       roles: true,
+  //       updatedAt: true,
+  //       username: true,
+  //     },
+  //   });
+  //   return
+  //   if (result === null) {
+  //     throw new errors.NotFoundException(
+  //       `No resource was found for ${JSON.stringify(params)}`
+  //     );
+  //   }
+  //   return result;
+  // }
 }
