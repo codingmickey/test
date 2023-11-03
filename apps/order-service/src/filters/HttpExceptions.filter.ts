@@ -8,6 +8,8 @@ import {
 import { BaseExceptionFilter } from "@nestjs/core";
 import { Prisma } from "@prisma/client";
 import { Response } from "express";
+import fs from "fs";
+import path from "path";
 
 export type ErrorCodesStatusMapping = {
   [key: string]: number;
@@ -52,6 +54,13 @@ export class HttpExceptionFilter extends BaseExceptionFilter {
       // Todo : Add all other exception types and also add mapping
       const ctx = host.switchToHttp();
       const response = ctx.getResponse<Response>();
+      // Save response to file
+
+      // fs.writeFileSync(
+      //   path.join(__dirname, "..", "..", "logs", "error.log"),
+      //   // JSON.stringify(response, null, 2),
+      //   JSON.stringify(response.req.files, null, 2)
+      // );
       if (exception.code === "P2002") {
         // Handling Unique Key Constraint Violation Error
         const fields = (exception.meta as { target: string[] }).target;

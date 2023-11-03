@@ -8,15 +8,16 @@ generator client {
 }
 
 model User {
-  createdAt     DateTime @default(now())
-  fileUserImage Json?
-  firstName     String?
-  id            String   @id @default(cuid())
-  lastName      String?
-  password      String
-  roles         Json
-  updatedAt     DateTime @updatedAt
-  username      String   @unique
+  createdAt       DateTime @default(now())
+  fileUserImage   Json?
+  fileUserInvoice Json?
+  firstName       String?
+  id              String   @id @default(cuid())
+  lastName        String?
+  password        String
+  roles           Json
+  updatedAt       DateTime @updatedAt
+  username        String   @unique
 }
 
 model Order {

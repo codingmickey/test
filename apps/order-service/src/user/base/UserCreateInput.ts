@@ -24,7 +24,8 @@ class UserCreateInput {
     type: "string",
     format: "binary",
   })
-  // @IsJSONValue()
+  // TODO: Keep the validation rules here
+  @IsJSONValue()
   @IsOptional()
   @Field(() => GraphQLJSON, {
     nullable: true,
@@ -37,10 +38,12 @@ class UserCreateInput {
     type: "string",
     format: "binary",
   })
+  // TODO: Keep the validation rules here
+  @IsJSONValue()
   @IsOptional()
-  // @Field(() => String, {
-  //   nullable: true,
-  // })
+  @Field(() => GraphQLJSON, {
+    nullable: true,
+  })
   fileUserInvoice?: InputJsonValue;
 
   // @ApiProperty({

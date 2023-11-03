@@ -39,6 +39,16 @@ class User {
 
   @ApiProperty({
     required: false,
+  })
+  @IsJSONValue()
+  @IsOptional()
+  @Field(() => GraphQLJSON, {
+    nullable: true,
+  })
+  fileUserInvoice!: JsonValue;
+
+  @ApiProperty({
+    required: false,
     type: String,
   })
   @IsString()

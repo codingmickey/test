@@ -115,7 +115,7 @@ export class UserControllerBase {
     @common.Body() data: UserCreateInput,
     @common.UploadedFiles()
     files: {
-      [key in UserFilesType]?: Express.Multer.File[];
+      fileUserImage?: Express.Multer.File[];
     }
   ) {
     common.Logger.debug(data.toString());
@@ -155,7 +155,7 @@ export class UserControllerBase {
     // }
     console.log(data);
 
-    delete data.fileUserInvoice;
+    // delete data.fileUserInvoice;
 
     return await this.service.create({
       data: data,
@@ -260,7 +260,7 @@ export class UserControllerBase {
     @common.Param() params: UserWhereUniqueInput,
     @common.Body() data: UserUpdateInput,
     @common.UploadedFiles()
-    files: // Thinking of making an interceptor instead of this?
+    files: // TODO:Thinking of making an interceptor instead of this?
     {
       fileUserImage?: Express.Multer.File[];
     }

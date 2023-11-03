@@ -184,7 +184,7 @@ type Mutation {
   createCustomer(data: CustomerCreateInput!): Customer!
   createOrder(data: OrderCreateInput!): Order!
   createProduct(data: ProductCreateInput!): Product!
-  createUser(data: UserCreateInput!): User!
+  createUser(data: UserCreateInput!, fileUserImage: Upload!, fileUserInvoice: Upload!): User!
   deleteAddress(where: AddressWhereUniqueInput!): Address!
   deleteCustomer(where: CustomerWhereUniqueInput!): Customer!
   deleteOrder(where: OrderWhereUniqueInput!): Order!
@@ -195,7 +195,7 @@ type Mutation {
   updateCustomer(data: CustomerUpdateInput!, where: CustomerWhereUniqueInput!): Customer!
   updateOrder(data: OrderUpdateInput!, where: OrderWhereUniqueInput!): Order!
   updateProduct(data: ProductUpdateInput!, where: ProductWhereUniqueInput!): Product!
-  updateUser(data: UserUpdateInput!, where: UserWhereUniqueInput!): User!
+  updateUser(data: UserUpdateInput!, fileUserImage: Upload!, fileUserInvoice: Upload!, where: UserWhereUniqueInput!): User!
 }
 
 type Order {
@@ -379,9 +379,13 @@ input StringNullableFilter {
   startsWith: String
 }
 
+"""The `Upload` scalar type represents a file upload."""
+scalar Upload
+
 type User {
   createdAt: DateTime!
   fileUserImage: JSON
+  fileUserInvoice: JSON
   firstName: String
   id: String!
   lastName: String
@@ -392,6 +396,7 @@ type User {
 
 input UserCreateInput {
   fileUserImage: JSON
+  fileUserInvoice: JSON
   firstName: String
   lastName: String
   password: String!
@@ -409,6 +414,7 @@ type UserInfo {
 input UserOrderByInput {
   createdAt: SortOrder
   fileUserImage: SortOrder
+  fileUserInvoice: SortOrder
   firstName: SortOrder
   id: SortOrder
   lastName: SortOrder
@@ -420,6 +426,7 @@ input UserOrderByInput {
 
 input UserUpdateInput {
   fileUserImage: JSON
+  fileUserInvoice: JSON
   firstName: String
   lastName: String
   password: String
@@ -429,6 +436,7 @@ input UserUpdateInput {
 
 input UserWhereInput {
   fileUserImage: JsonFilter
+  fileUserInvoice: JsonFilter
   firstName: StringNullableFilter
   id: StringFilter
   lastName: StringNullableFilter

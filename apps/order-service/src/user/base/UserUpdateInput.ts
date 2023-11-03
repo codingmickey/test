@@ -23,12 +23,24 @@ class UserUpdateInput {
     type: "string",
     format: "binary",
   })
-  // @IsJSONValue()
+  @IsJSONValue()
   @IsOptional()
   @Field(() => GraphQLJSON, {
     nullable: true,
   })
   fileUserImage?: InputJsonValue;
+
+  @ApiProperty({
+    required: false,
+    type: "string",
+    format: "binary",
+  })
+  // @IsJSONValue()
+  @IsOptional()
+  @Field(() => GraphQLJSON, {
+    nullable: true,
+  })
+  fileUserInvoice?: InputJsonValue;
 
   @ApiProperty({
     required: false,

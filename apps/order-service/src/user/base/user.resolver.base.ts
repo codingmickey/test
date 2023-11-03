@@ -27,6 +27,18 @@ import { UserFindManyArgs } from "./UserFindManyArgs";
 import { UserFindUniqueArgs } from "./UserFindUniqueArgs";
 import { User } from "./User";
 import { UserService } from "../user.service";
+import {
+  FileUpload,
+  GraphQLUpload,
+  Upload,
+  graphqlUploadExpress,
+} from "graphql-upload";
+import { graphqlUpload, graphqlUploadMultiple } from "src/util/FileHelper";
+import fs from "fs";
+import path from "path";
+import { MiddlewareBuilder } from "@nestjs/core";
+import { UserFilesType } from "./UserFileArgs";
+
 @common.UseGuards(GqlDefaultAuthGuard, gqlACGuard.GqlACGuard)
 @graphql.Resolver(() => User)
 export class UserResolverBase {
@@ -83,10 +95,36 @@ export class UserResolverBase {
     action: "create",
     possession: "any",
   })
-  async createUser(@graphql.Args() args: CreateUserArgs): Promise<User> {
+  async createUser(
+    @graphql.Args() args: CreateUserArgs,
+    // I tried to refactor these by using the userFiles[] from userFiles.ts
+    // But wasn't possible in this case so keeping it as it is
+    @graphql.Args({ name: "fileUserImage", type: () => GraphQLUpload })
+    fileUserImage: FileUpload,
+    @graphql.Args({ name: "fileUserInvoice", type: () => GraphQLUpload })
+    fileUserInvoice: FileUpload
+  ): Promise<{ id: string }> {
+    const { newArgs, fileContent } = await graphqlUploadMultiple<
+      UserFilesType,
+      CreateUserArgs
+    >(args, [
+      { file: fileUserImage, entity: "fileUserImage" },
+      { file: fileUserInvoice, entity: "fileUserInvoice" },
+    ]);
+
+    console.log(args);
+
+    // fs.writeFileSync(
+    //   path.join(__dirname, "..", "..", "..", "logs", "error.log"),
+    //   // JSON.stringify(response, null, 2),
+    //   JSON.stringify({ args, fileContent, fileUserImage }, null, 2)
+    // );
+
+    // return { id: "true" };
+
     return await this.service.create({
-      ...args,
-      data: args.data,
+      ...newArgs,
+      data: newArgs.data,
     });
   }
 
@@ -97,11 +135,27 @@ export class UserResolverBase {
     action: "update",
     possession: "any",
   })
-  async updateUser(@graphql.Args() args: UpdateUserArgs): Promise<User | null> {
+  async updateUser(
+    @graphql.Args() args: UpdateUserArgs,
+    @graphql.Args({ name: "fileUserImage", type: () => GraphQLUpload })
+    fileUserImage: FileUpload,
+    @graphql.Args({ name: "fileUserInvoice", type: () => GraphQLUpload })
+    fileUserInvoice: FileUpload
+  ): Promise<User | null> {
     try {
+      console.log(fileUserImage, fileUserInvoice);
+
+      const { newArgs, fileContent } = await graphqlUploadMultiple<
+        UserFilesType,
+        UpdateUserArgs
+      >(args, [
+        { file: fileUserImage, entity: "fileUserImage" },
+        { file: fileUserInvoice, entity: "fileUserInvoice" },
+      ]);
+
       return await this.service.update({
-        ...args,
-        data: args.data,
+        ...newArgs,
+        data: newArgs.data,
       });
     } catch (error) {
       if (isRecordNotFoundError(error)) {

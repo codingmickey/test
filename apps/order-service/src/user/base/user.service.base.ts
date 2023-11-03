@@ -17,6 +17,7 @@ import { join } from "path";
 import * as fs from "fs";
 import { Response } from "express";
 import * as errors from "../../errors";
+import { FileJSONType } from "src/util/FileHelper";
 
 export class UserServiceBase {
   constructor(
@@ -58,32 +59,14 @@ export class UserServiceBase {
     const temp = await this.findOne({ where: { id: args.where.id } });
     console.log("hi");
     if (
-      (
-        args.data.fileUserImage as {
-          fileName: string;
-          filePath: string;
-          fileExtension: string;
-        }
-      ).filePath !== null &&
+      (args.data.fileUserImage as FileJSONType).filePath !== null &&
       temp !== null &&
-      (
-        temp?.fileUserImage as {
-          fileName: string;
-          filePath: string;
-          fileExtension: string;
-        }
-      ).filePath !== null
+      (temp?.fileUserImage as FileJSONType).filePath !== null
     ) {
       const filePath = join(
         __dirname,
         "../../../public/user",
-        (
-          temp.fileUserImage as {
-            fileName: string;
-            filePath: string;
-            fileExtension: string;
-          }
-        ).fileName
+        (temp.fileUserImage as FileJSONType).fileName
       );
       fs.unlinkSync(filePath);
     }
